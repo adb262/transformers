@@ -1,7 +1,18 @@
 import torch
 
-from .modelUtils import EncoderBlock, Embedder
+from modelUtils import EncoderBlock, Embedder
+from torch import nn
 
+class BERTMultiArgSequential(nn.Sequential):
+    """Defined as an example of overriding nn.Sequential.
+
+    In this case we want to allow an attention_mask to propogate
+    through the modules in our Sequential Encoder calls.
+    """
+    def forward(self, x, attention_mask):
+        for module in self._modules.values():
+            x = module(x, attention_mask)
+        return x
 
 class BOWBERT(nn.Module):
     """Implementation of BERT without positional encoding (BOW BERT)."""
@@ -18,8 +29,7 @@ class BOWBERT(nn.Module):
         )
         # Use nn.Sequential since there is forward() demand
         modules = [EncoderBlock(d_model, n_heads) for _ in range(n_encoders)]
-        #self.encoders = nn.Sequential(*modules)
-        self.encoders = EncoderBlock(d_model, n_heads)
+        self.encoders = BERTMultiArgSequential(*modules)
 
     def forward(self, x):
         attention_mask = torch.where(x == self.pad_token_idx, 0, 1)
