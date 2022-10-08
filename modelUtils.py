@@ -10,6 +10,27 @@ class Embedder(nn.Module):
 
     def forward(self, x):
         return self.embed(x)
+
+class PositonalEncoding(nn.Module):
+    def __init__(self, seq_len, d_model, dropout=0.2, max_len: int = 5000):
+        super().__init__()
+        positions = torch.arange(max_len)
+        div_term = torch.exp(torch.arange(0, d_model, 2) * (-math.log(10000.0) / d_model))
+        pe = torch.zeros(max_len, 1, d_model)
+        pe[:, 0, 0::2] = torch.sin(position * div_term)
+        pe[:, 0, 1::2] = torch.cos(position * div_term)
+        pe = pe.view(1, 0, 2)
+        self.dropout = nn.Dropout(dropout)
+        self.register_buffer('pe', pe)
+
+    def forward(self, x: Tensor) -> Tensor:
+        """
+        Args:
+            x: Tensor, shape [batch_size, seq_len, embedding_dim]
+        """
+        x = x + self.pe[:, :x.size(1)]
+        return self.dropout(x)
+
   
 class AttentionHead(nn.Module):
     def __init__(self, d_model):
@@ -25,7 +46,7 @@ class AttentionHead(nn.Module):
         attention_scores = torch.bmm(q, k) * self.scale_factor  # Shape of b, tokens, tokens
         masked_scores = attention_scores.masked_fill(attention_mask[:, None, :] == 0, float('-inf'))
         attention = torch.softmax(masked_scores, dim=-1)  # b, tokens, tokens
-        scores = torch.bmm(attention, v) # b, tokens, d_model
+        scores = torch.bmm(attention, v) # b, tokens, d_modeln
         return scores # b, tokens, d_model
 
 class MultiHeadAttention(nn.Module):
