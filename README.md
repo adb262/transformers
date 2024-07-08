@@ -5,3 +5,5 @@
 ### Ideas: 
 - Using ideas from multimodal fusion for more effective skip connections
 - Backward peeking
+
+# Next Up: NN from scratch
